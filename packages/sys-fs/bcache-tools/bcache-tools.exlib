@@ -1,0 +1,35 @@
+require github [ user='g2p' tag="v${PV}" ] udev-rules
+
+export_exlib_phases src_prepare
+
+SUMMARY='bcache tools'
+SLOT='0'
+
+DEPENDENCIES='
+    build+run:
+        sys-apps/util-linux[>=2.24]
+'
+
+DEFAULT_SRC_COMPILE_PARAMS=( PREFIX="/usr/$(exhost --target)" )
+DEFAULT_SRC_INSTALL_PARAMS=( PREFIX="/usr/$(exhost --target)" )
+
+bcache-tools_src_prepare() {
+    default
+
+    edo mkdir -p "${IMAGE}/usr/$(exhost --target)"/{bin,lib/{udev/rules.d,dracut/modules.d}}
+    edo mkdir -p "${IMAGE}"/usr/share/{man/man8,doc}
+    edo sed -e 's:/sbin:/bin:g'\
+            -e 's:${PREFIX}/share:/usr/share:g'\
+            -e 's:PREFIX=/usr:PREFIX ?= /usr:g'\
+            -e 's:UDEVLIBDIR=.*:UDEVLIBDIR=$(PREFIX)/lib/udev:g'\
+            -e 's:DRACUTLIBDIR=.*:DRACUTLIBDIR=$(PREFIX)/lib/dracut:g'\
+            -e '/initramfs\/hook/d'\
+            -e '/initcpio\/install/d' -i Makefile
+
+    local dir=${WORKBASE}/symlinked-build-tools
+    edo mkdir -p ${dir}
+    edo ln -s /usr/$(exhost --target)/bin/$(exhost --target)-pkg-config ${dir}/pkg-config
+    export PATH="${dir}:${PATH}"
+}
+
+
